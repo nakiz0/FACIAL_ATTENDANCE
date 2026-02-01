@@ -105,14 +105,6 @@ Admins can add, edit, or delete timetable entries dynamically.
 
 ---
 
-## 🧪 Additional Screens
-
-### System Testing / Debug View
-Additional system view captured during testing.  
-![System Screenshot](screenshots/Screenshot_2026-02-02_002833.png)
-
----
-
 ## 👨‍💻 Author
 **Amrit Gurung**  
 Cybersecurity Student | Full-Stack Developer
