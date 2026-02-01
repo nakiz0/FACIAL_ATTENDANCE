@@ -13,7 +13,7 @@ This section showcases the complete workflow and features of the system.
 
 ### Login Page
 User login interface with credential validation.  
-![Login Page](screenshots/login-page.png)
+![Login Page](screenshots/login_page.png)
 
 ---
 
