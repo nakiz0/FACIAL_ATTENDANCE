@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Facial Attendance</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 100%; max-width: 450px; }
+        h1 { text-align: center; color: #333; margin-bottom: 30px; font-size: 28px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; color: #555; font-weight: 500; }
+        input[type="text"], input[type="email"], input[type="password"], select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; transition: border 0.3s; }
+        input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus, select:focus { outline: none; border: 2px solid #667eea; }
+        button { width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 5px; font-size: 16px; font-weight: 600; cursor: pointer; transition: opacity 0.3s; margin-top: 10px; }
+        button:hover { opacity: 0.9; }
+        .error { background-color: #ffebee; color: #d32f2f; padding: 12px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #d32f2f; }
+        .message { background-color: #e8f5e9; color: #388e3c; padding: 12px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #388e3c; }
+        .info { background-color: #e3f2fd; color: #1976d2; padding: 12px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #1976d2; font-size: 13px; }
+        .login-link { text-align: center; margin-top: 20px; color: #666; }
+        .login-link a { color: #667eea; font-weight: 600; text-decoration: none; }
+        .login-link a:hover { text-decoration: underline; }
+        .password-hint { font-size: 12px; color: #999; margin-top: 5px; }
+        .section { margin-bottom: 30px; }
+        .section-title { font-size: 13px; font-weight: 600; color: #667eea; margin-bottom: 15px; }
+        .hidden { display: none; }
+        .otp-input { letter-spacing: 5px; text-align: center; font-size: 24px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📝 Register</h1>
+        
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
+        
+        {% if message %}
+            <div class="message">{{ message }}</div>
+        {% endif %}
+
+        <!-- Registration Form Section -->
+        <div id="register-section" class="section {% if verified_username %}hidden{% endif %}">
+            <form method="POST" action="{{ url_for('register') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required placeholder="Choose a unique username">
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email (optional)</label>
+                    <input type="email" id="email" name="email" placeholder="your-email@example.com">
+                    <div class="password-hint">✓ Provide email to receive password reset links and verify via OTP</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required placeholder="Minimum 4 characters">
+                    <div class="password-hint">✓ Min 4 characters, will be securely hashed</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="role">Role</label>
+                    <select id="role" name="role" required>
+                        <option value="student">Student</option>
+                        <option value="teacher">Teacher</option>
+                    </select>
+                </div>
+                
+                <button type="submit">Register</button>
+            </form>
+            
+            <div class="login-link">
+                Already have an account? <a href="{{ url_for('login') }}">Login here</a>
+            </div>
+        </div>
+
+        <!-- OTP Verification Section (shown after successful registration) -->
+        <div id="otp-section" class="section {% if not verified_username %}hidden{% endif %}">
+            <div class="section-title">Step 2: Verify Your Email</div>
+            <div class="info">
+                ✉️ An OTP has been sent to <strong>{{ email_for_verification }}</strong>. Enter it below to verify your email and complete registration.
+            </div>
+            
+            <form method="POST" action="{{ url_for('verify_otp_register') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="username" value="{{ verified_username }}">
+                
+                <div class="form-group">
+                    <label for="otp">Enter OTP (6 digits)</label>
+                    <input type="text" id="otp" name="otp" class="otp-input" maxlength="6" pattern="[0-9]{6}" required placeholder="000000" autocomplete="off">
+                </div>
+                
+                <button type="submit">✅ Verify Email</button>
+                <button type="button" onclick="skipVerification()" style="background: #999;">Skip for Now</button>
+            </form>
+            
+            <div class="login-link" style="margin-top: 15px;">
+                <a href="{{ url_for('login') }}">Go to Login</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function skipVerification() {
+            if (confirm('⚠️ You can verify your email later via /verify_email.\n\nProceed to login?')) {
+                window.location.href = '{{ url_for("login") }}';
+            }
+        }
+    </script>
+</body>
+</html>

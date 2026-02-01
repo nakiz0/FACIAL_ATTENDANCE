@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>📸 Take Attendance</h2>
+
+<div class="card">
+  <p style="margin-bottom: 16px; font-size: 16px;">
+    <strong>Current Subject:</strong> <span style="color: #1e88e5; font-weight: 600;">{{ subject or 'Not in scheduled time' }}</span>
+  </p>
+
+  <div id="videoContainer"></div>
+
+  <div style="display: flex; gap: 12px; margin-top: 16px;">
+    <button id="startBtn" style="align-self: auto;">✅ Mark Attendance (Face Recognition)</button>
+    <button id="liveTrainBtn" style="align-self: auto;">🎓 Train New Student</button>
+  </div>
+
+  <div id="log"></div>
+</div>
+
+  <!-- expose CSRF token for fetch requests from this page -->
+  <script>window.CSRF_TOKEN = '{{ csrf_token() }}';</script>
+  <script src="{{ url_for('static', filename='js/client_recog.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/admin_train.js') }}"></script>
+
+  <!-- Recent attendance (today) with edit/delete actions -->
+  <div class="card" style="margin-top:16px;">
+    <h3 style="margin-top:0;">Recent Attendance (Today)</h3>
+    {% if attendance and attendance|length > 0 %}
+    <table style="width:100%; border-collapse: collapse;">
+      <thead>
+        <tr style="text-align:left; border-bottom:1px solid #ddd;">
+          <th>User</th><th>Subject</th><th>Date</th><th>Time</th><th>Status</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for att in attendance %}
+        <tr id="att-{{ att.id }}">
+          <td>{{ att.user.username if att.user else 'Unknown' }}</td>
+          <td>{{ att.subject or '' }}</td>
+          <td>{{ att.date }}</td>
+          <td>{{ att.time }}</td>
+          <td>{{ att.status }}</td>
+          <td>
+            <button onclick="editAttendance({{ att.id }})">Edit</button>
+            <button onclick="deleteAttendance({{ att.id }})" style="margin-left:8px;">Delete</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <div>No attendance recorded for today yet.</div>
+    {% endif %}
+  </div>
+<script>
+const subject = '{{ subject }}';
+
+document.getElementById('startBtn').addEventListener('click', () => {
+  const log = document.getElementById('log');
+  log.innerText = '⏳ Please look at the camera to mark your attendance.';
+  log.style.color = '#0c5460';
+  log.style.background = '';
+
+  startRecognition(subject, (res) => {
+    if (res.marked) {
+      log.innerText = `✅ Attendance marked for ${res.username} in ${subject}`;
+      log.style.color = '#155724';
+      log.style.background = '#d4edda';
+    } else {
+      log.innerText = `❌ No match found. Reason: ${res.reason || 'Unknown'}`;
+      log.style.color = '#721c24';
+      log.style.background = '#f8d7da';
+    }
+  });
+});
+
+document.getElementById('liveTrainBtn').addEventListener('click', async () => {
+  const username = prompt('Enter username to train (must exist in system):');
+  if (!username) return;
+
+  try {
+    const r = await captureAndTrain(username, 6);
+    if (r.ok) {
+      alert(`✅ Successfully saved ${r.saved} training frames for ${username}. Now marking attendance using face recognition...`);
+      document.getElementById('startBtn').click();
+    } else {
+      alert(`❌ Error: ${r.error}`);
+    }
+  } catch (e) {
+    alert(`❌ Error: ${e.message}`);
+  }
+});
+
+// Edit attendance row (teacher/admin)
+async function editAttendance(id) {
+  const subj = prompt('Enter new subject (leave blank to keep):');
+  if (subj === null) return; // cancel
+  const date = prompt('Enter date (YYYY-MM-DD) or leave blank to keep:');
+  if (date === null) return;
+  const time = prompt('Enter time (HH:MM:SS) or leave blank to keep:');
+  if (time === null) return;
+  const status = prompt('Enter status (Present/Absent) or leave blank to keep:');
+  if (status === null) return;
+
+  const body = {};
+  if (subj) body.subject = subj;
+  if (date) body.date = date;
+  if (time) body.time = time;
+  if (status) body.status = status;
+
+  try {
+    const res = await fetch(`/admin/attendance/update/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': window.CSRF_TOKEN },
+      body: JSON.stringify(body)
+    });
+    const j = await res.json();
+    if (j.ok) {
+      alert('Attendance updated');
+      location.reload();
+    } else {
+      alert('Error: ' + (j.error || j.message || 'Unknown'));
+    }
+  } catch (e) {
+    alert('Network error: ' + e.message);
+  }
+}
+
+// Delete attendance row
+async function deleteAttendance(id) {
+  if (!confirm('Delete this attendance record?')) return;
+  try {
+    const res = await fetch(`/admin/attendance/delete/${id}`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': window.CSRF_TOKEN }
+    });
+    const j = await res.json();
+    if (j.ok) {
+      alert('Deleted');
+      const row = document.getElementById('att-' + id);
+      if (row) row.remove();
+    } else {
+      alert('Error: ' + (j.error || j.message || 'Unknown'));
+    }
+  } catch (e) {
+    alert('Network error: ' + e.message);
+  }
+}
+</script>
+{% endblock %}

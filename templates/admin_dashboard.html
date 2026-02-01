@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Admin Dashboard - Facial Attendance</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5; }
+        .navbar { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .navbar h1 { font-size: 24px; margin: 0; }
+        .navbar a { color: white; text-decoration: none; margin-left: 20px; padding: 8px 15px; border-radius: 4px; transition: background 0.3s; }
+        .navbar a:hover { background: rgba(255,255,255,0.2); }
+        .main-content { max-width: 1400px; margin: 30px auto; padding: 0 20px; }
+        .main-content h1 { color: #333; margin-bottom: 30px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center; }
+        .stat-card h3 { font-size: 32px; margin-bottom: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .stat-card p { color: #666; font-size: 14px; }
+        .section { background: white; padding: 20px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .section h2 { color: #333; margin-bottom: 20px; border-bottom: 2px solid #667eea; padding-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; }
+        table thead { background-color: #f5f5f5; border-bottom: 2px solid #ddd; }
+        table th { padding: 12px; text-align: left; color: #333; font-weight: 600; }
+        table td { padding: 12px; border-bottom: 1px solid #eee; }
+        table tr:hover { background-color: #f9f9f9; }
+        .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; transition: opacity 0.3s; margin-right: 5px; }
+        .btn-reset { background: #ff9800; color: white; }
+        .btn-reset:hover { opacity: 0.9; }
+        .btn-delete { background: #f44336; color: white; }
+        .btn-delete:hover { opacity: 0.9; }
+        .btn-submit { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; width: 100%; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; margin-top: 15px; }
+        .btn-submit:hover { opacity: 0.9; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #555; font-weight: 500; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; }
+        .form-group input:focus, .form-group select:focus { outline: none; border: 2px solid #667eea; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .error { background-color: #ffebee; color: #d32f2f; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #d32f2f; }
+        .success { background-color: #e8f5e9; color: #388e3c; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #388e3c; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+        .badge-primary { background: #e3f2fd; color: #1976d2; }
+        .badge-success { background: #c8e6c9; color: #2e7d32; }
+        .badge-warning { background: #fff3cd; color: #856404; }
+        .upload-section { margin-bottom: 20px; padding: 15px; background: #f9f9f9; border-radius: 5px; }
+        .small-text { font-size: 12px; color: #999; margin-top: 5px; display: block; }
+        .overflow-auto { overflow-x: auto; }
+        .empty-message { text-align: center; color: #999; padding: 20px; }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <div class="navbar">
+        <h1>📊 Facial Attendance System</h1>
+        <div>
+            <a href="{{ url_for('index') }}">Home</a>
+            <a href="{{ url_for('logout') }}">🚪 Logout</a>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <h1>📊 Admin Dashboard</h1>
+        
+        <!-- Error messages -->
+        {% if error %}
+            <div class="error">❌ {{ error }}</div>
+        {% endif %}
+        
+        <!-- Stats Section -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>{{ students|length }}</h3>
+                <p>👨‍🎓 Total Students</p>
+            </div>
+            <div class="stat-card">
+                <h3>{{ teachers|length }}</h3>
+                <p>👨‍🏫 Total Teachers</p>
+            </div>
+            <div class="stat-card">
+                <h3>{{ attendance|length }}</h3>
+                <p>📋 Total Attendance Records</p>
+            </div>
+            <div class="stat-card">
+                <h3>{{ timetable|length }}</h3>
+                <p>⏰ Timetable Entries</p>
+            </div>
+        </div>
+        
+        <!-- ============= Manage Students ============= -->
+        <div class="section">
+            <h2>👨‍🎓 Manage Students</h2>
+            <div class="overflow-auto">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Email Verified</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if students %}
+                            {% for student in students %}
+                            <tr>
+                                <td><strong>{{ student.username }}</strong></td>
+                                <td>{{ student.email or '—' }}</td>
+                                <td>
+                                    {% if student.email_verified %}
+                                        <span class="badge badge-success">✅ Verified</span>
+                                    {% else %}
+                                        <span class="badge badge-warning">⏳ Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-reset" onclick="resetPassword({{ student.id }}, '{{ student.username }}')">🔑 Reset</button>
+                                    <button class="btn btn-delete" onclick="deleteUser({{ student.id }}, '{{ student.username }}')">🗑️ Delete</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="empty-message">No students found.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ============= Manage Teachers ============= -->
+        <div class="section">
+            <h2>👨‍🏫 Manage Teachers</h2>
+            <div class="overflow-auto">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Email Verified</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if teachers %}
+                            {% for teacher in teachers %}
+                            <tr>
+                                <td><strong>{{ teacher.username }}</strong></td>
+                                <td>{{ teacher.email or '—' }}</td>
+                                <td>
+                                    {% if teacher.email_verified %}
+                                        <span class="badge badge-success">✅ Verified</span>
+                                    {% else %}
+                                        <span class="badge badge-warning">⏳ Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-reset" onclick="resetPassword({{ teacher.id }}, '{{ teacher.username }}')">🔑 Reset</button>
+                                    <button class="btn btn-delete" onclick="deleteUser({{ teacher.id }}, '{{ teacher.username }}')">🗑️ Delete</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="empty-message">No teachers found.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- ============= Upload Images Section ============= -->
+        <div class="section">
+            <h2>📸 Upload Face Images</h2>
+            <form method="POST" action="{{ url_for('admin_upload_images') }}" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="form-group">
+                    <label for="username">Select Student</label>
+                    <select id="username" name="username" required>
+                        <option value="">-- Choose Student --</option>
+                        {% for student in students %}
+                        <option value="{{ student.username }}">{{ student.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="images">Select Images (Multiple)</label>
+                    <input type="file" id="images" name="images" multiple accept="image/*" required>
+                    <span class="small-text">✓ Select multiple JPG, PNG, or JPEG images</span>
+                </div>
+                <button type="submit" class="btn-submit">⬆️ Upload Images</button>
+            </form>
+        </div>
+        
+        <!-- ============= Manual Mark Attendance ============= -->
+        <div class="section">
+            <h2>📋 Manual Mark Attendance</h2>
+            <form method="POST" action="{{ url_for('admin_mark') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="mark-username">Student</label>
+                        <select id="mark-username" name="username" required>
+                            <option value="">-- Select Student --</option>
+                            {% for student in students %}
+                            <option value="{{ student.username }}">{{ student.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="subject">Subject</label>
+                        <input type="text" id="subject" name="subject" placeholder="e.g., Mathematics" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="att-date">Date (Max: Today)</label>
+                        <input type="date" id="att-date" name="date" max="{{ today }}" value="{{ today }}" required>
+                        <span class="small-text">⚠️ Cannot mark future dates</span>
+                    </div>
+                </div>
+                <button type="submit" class="btn-submit">✅ Mark Attendance</button>
+            </form>
+        </div>
+        
+        <!-- ============= Timetable Management ============= -->
+        <div class="section">
+            <h2>⏰ Timetable Management</h2>
+            
+            <!-- Add Timetable Entry -->
+            <div class="upload-section">
+                <h3>➕ Add New Entry</h3>
+                <form method="POST" action="{{ url_for('admin_add_timetable') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="day">Day</label>
+                            <select id="day" name="day" required>
+                                <option value="">-- Select Day --</option>
+                                <option value="Monday">Monday</option>
+                                <option value="Tuesday">Tuesday</option>
+                                <option value="Wednesday">Wednesday</option>
+                                <option value="Thursday">Thursday</option>
+                                <option value="Friday">Friday</option>
+                                <option value="Saturday">Saturday</option>
+                                <option value="Sunday">Sunday</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="start">Start Time</label>
+                            <input type="time" id="start" name="start" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="end">End Time</label>
+                            <input type="time" id="end" name="end" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="timetable-subject">Subject</label>
+                            <input type="text" id="timetable-subject" name="subject" placeholder="e.g., English" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-submit">➕ Add Entry</button>
+                </form>
+            </div>
+            
+            <!-- Display Timetable -->
+            <h3 style="margin-top: 20px; margin-bottom: 15px; color: #333;">📅 Current Timetable</h3>
+            <div class="overflow-auto">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Day</th>
+                            <th>Time</th>
+                            <th>Subject</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if timetable %}
+                            {% for t in timetable %}
+                            <tr>
+                                    <td><strong>{{ t.day }}</strong></td>
+                                    <td>{{ t.start }} - {{ t.end }}</td>
+                                    <td>{{ t.subject }}</td>
+                                    <td>
+                                        <button class="btn btn-reset" onclick="editTimetable({{ t.id }}, '{{ t.day }}', '{{ t.start }}', '{{ t.end }}', '{{ t.subject }}')">✏️ Edit</button>
+                                        <button class="btn btn-delete" onclick="deleteTimetable({{ t.id }})">🗑️ Delete</button>
+                                    </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="3" class="empty-message">No timetable entries added yet.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- ============= Recent Attendance ============= -->
+        <div class="section">
+            <h2>📊 Recent Attendance Records</h2>
+            <div class="overflow-auto">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Subject</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if attendance %}
+                            {% for att in attendance %}
+                            <tr>
+                                    <td><strong>{{ att.user.username }}</strong></td>
+                                    <td>{{ att.subject }}</td>
+                                    <td>{{ att.date }}</td>
+                                    <td>{{ att.time }}</td>
+                                    <td><span class="badge badge-success">{{ att.status }}</span></td>
+                                    <td>
+                                        <button class="btn btn-reset" onclick="editAttendance({{ att.id }}, '{{ att.user.username }}', '{{ att.subject }}', '{{ att.date }}', '{{ att.time }}', '{{ att.status }}')">✏️ Edit</button>
+                                        <button class="btn btn-delete" onclick="deleteAttendance({{ att.id }})">🗑️ Delete</button>
+                                    </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="5" class="empty-message">No attendance records yet.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-backdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;z-index:9999;">
+        <div id="modal-container" style="background:#fff;border-radius:8px;max-width:520px;width:100%;padding:20px;box-shadow:0 8px 24px rgba(0,0,0,0.2);">
+            <!-- Timetable Modal -->
+            <div id="timetable-modal" style="display:none;">
+                <h3 style="margin-bottom:10px;">Edit Timetable Entry</h3>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                    <input id="modal-day" placeholder="Day" />
+                    <input id="modal-start" type="time" />
+                    <input id="modal-end" type="time" />
+                    <input id="modal-subject" placeholder="Subject" />
+                </div>
+                <div style="text-align:right;margin-top:8px;">
+                    <button id="timetable-cancel" class="btn" style="background:#ddd;color:#222;margin-right:8px;">Cancel</button>
+                    <button id="timetable-save" class="btn btn-submit">Save</button>
+                </div>
+            </div>
+
+            <!-- Attendance Modal -->
+            <div id="attendance-modal" style="display:none;">
+                <h3 style="margin-bottom:10px;">Edit Attendance Record</h3>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                    <input id="att-modal-subject" placeholder="Subject" />
+                    <input id="att-modal-date" type="date" />
+                    <input id="att-modal-time" type="time" />
+                    <select id="att-modal-status"><option>Present</option><option>Absent</option></select>
+                </div>
+                <div style="text-align:right;margin-top:8px;">
+                    <button id="attendance-cancel" class="btn" style="background:#ddd;color:#222;margin-right:8px;">Cancel</button>
+                    <button id="attendance-save" class="btn btn-submit">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        let _editingTimetableId = null;
+        let _editingAttendanceId = null;
+
+        function resetPassword(userId, username) {
+            const newPassword = prompt(`Enter new password for ${username}:\n(Min 4 characters)`);
+            if (!newPassword) return;
+            if (newPassword.length < 4) {
+                alert('❌ Password must be at least 4 characters');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('password', newPassword);
+            
+            fetch(`/admin/reset_user_password/${userId}`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken },
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) {
+                    alert('✅ ' + data.message);
+                } else {
+                    alert('❌ ' + (data.error || 'Error occurred'));
+                }
+            })
+            .catch(e => {
+                console.error('Error:', e);
+                alert('❌ Error: ' + e.message);
+            });
+        }
+
+        function deleteUser(userId, username) {
+            if (!confirm(`⚠️ Are you sure you want to delete ${username}?\n\nThis will delete:\n- User account\n- All attendance records\n- Face data\n\nThis action CANNOT be undone!`)) {
+                return;
+            }
+
+            // Timetable edit/delete functions
+            function editTimetable(id, day, start, end, subject) {
+                const newDay = prompt('Day', day) || day;
+                const newStart = prompt('Start time (HH:MM)', start) || start;
+                const newEnd = prompt('End time (HH:MM)', end) || end;
+                const newSubj = prompt('Subject', subject) || subject;
+                const payload = { day: newDay, start: newStart, end: newEnd, subject: newSubj };
+                fetch(`/admin/timetable/update/${id}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify(payload)
+                }).then(r => r.json()).then(j => {
+                    if (j.ok) { alert('✅ Timetable updated'); location.reload(); }
+                    else { alert('❌ ' + (j.error || 'Update failed')); }
+                }).catch(e => { console.error(e); alert('❌ Error: ' + e.message); });
+            }
+
+            function deleteTimetable(id) {
+                if (!confirm('⚠️ Delete this timetable entry?')) return;
+                fetch(`/admin/timetable/delete/${id}`, { method: 'POST', headers: { 'X-CSRFToken': csrfToken } }).then(r => r.json()).then(j => {
+                    if (j.ok) { alert('✅ Deleted'); location.reload(); }
+                    else { alert('❌ ' + (j.error || 'Delete failed')); }
+                }).catch(e => { console.error(e); alert('❌ Error: ' + e.message); });
+            }
+
+            // Attendance edit/delete
+            function editAttendance(id, username, subject, date, time, status) {
+                const newSubject = prompt('Subject', subject) || subject;
+                const newDate = prompt('Date (YYYY-MM-DD)', date) || date;
+                const newTime = prompt('Time (HH:MM:SS)', time) || time;
+                const newStatus = prompt('Status (Present/Absent)', status) || status;
+                const payload = { subject: newSubject, date: newDate, time: newTime, status: newStatus };
+                fetch(`/admin/attendance/update/${id}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }, body: JSON.stringify(payload)
+                }).then(r => r.json()).then(j => {
+                    if (j.ok) { alert('✅ Attendance updated'); location.reload(); }
+                    else { alert('❌ ' + (j.error || 'Update failed')); }
+                }).catch(e => { console.error(e); alert('❌ Error: ' + e.message); });
+            }
+
+            function deleteAttendance(id) {
+                if (!confirm('⚠️ Delete this attendance record?')) return;
+                fetch(`/admin/attendance/delete/${id}`, { method: 'POST', headers: { 'X-CSRFToken': csrfToken } }).then(r => r.json()).then(j => {
+                    if (j.ok) { alert('✅ Deleted'); location.reload(); }
+                    else { alert('❌ ' + (j.error || 'Delete failed')); }
+                }).catch(e => { console.error(e); alert('❌ Error: ' + e.message); });
+            }
+            
+            fetch(`/admin/delete_user/${userId}`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) {
+                    alert('✅ ' + data.message);
+                    location.reload();
+                } else {
+                    alert('❌ ' + (data.error || 'Error occurred'));
+                }
+            })
+            .catch(e => {
+                console.error('Error:', e);
+                alert('❌ Error: ' + e.message);
+            });
+        }
+
+        // --- Global editors and modal handlers (provide top-level functions used by buttons) ---
+        function editTimetable(id, day, start, end, subject) {
+            _editingTimetableId = id;
+            document.getElementById('modal-day').value = day;
+            document.getElementById('modal-start').value = start;
+            document.getElementById('modal-end').value = end;
+            document.getElementById('modal-subject').value = subject;
+            document.getElementById('timetable-modal').style.display = 'block';
+            document.getElementById('attendance-modal').style.display = 'none';
+            document.getElementById('modal-backdrop').style.display = 'flex';
+        }
+
+        function deleteTimetable(id) {
+            if (!confirm('⚠️ Delete this timetable entry?')) return;
+            fetch(`/admin/timetable/delete/${id}`, { method: 'POST', headers: { 'X-CSRFToken': csrfToken } }).then(r => r.json()).then(j => {
+                if (j.ok) { alert('✅ Deleted'); location.reload(); }
+                else { alert('❌ ' + (j.error || 'Delete failed')); }
+            }).catch(e => { console.error(e); alert('❌ Error: ' + e.message); });
+        }
+
+        function editAttendance(id, username, subject, date, time, status) {
+            _editingAttendanceId = id;
+            document.getElementById('att-modal-subject').value = subject;
+            document.getElementById('att-modal-date').value = date;
+            document.getElementById('att-modal-time').value = time;
+            document.getElementById('att-modal-status').value = status;
+            document.getElementById('attendance-modal').style.display = 'block';
+            document.getElementById('timetable-modal').style.display = 'none';
+            document.getElementById('modal-backdrop').style.display = 'flex';
+        }
+
+        function deleteAttendance(id) {
+            if (!confirm('⚠️ Delete this attendance record?')) return;
+            fetch(`/admin/attendance/delete/${id}`, { method: 'POST', headers: { 'X-CSRFToken': csrfToken } }).then(r => r.json()).then(j => {
+                if (j.ok) { alert('✅ Deleted'); location.reload(); }
+                else { alert('❌ ' + (j.error || 'Delete failed')); }
+            }).catch(e => { console.error(e); alert('❌ Error: ' + e.message); });
+        }
+
+        document.getElementById('timetable-cancel').addEventListener('click', function(){ document.getElementById('modal-backdrop').style.display='none'; });
+        document.getElementById('attendance-cancel').addEventListener('click', function(){ document.getElementById('modal-backdrop').style.display='none'; });
+
+        document.getElementById('timetable-save').addEventListener('click', function(){
+            if (!_editingTimetableId) return;
+            const payload = {
+                day: document.getElementById('modal-day').value,
+                start: document.getElementById('modal-start').value,
+                end: document.getElementById('modal-end').value,
+                subject: document.getElementById('modal-subject').value
+            };
+            console.log('Timetable payload:', payload);
+            console.log('CSRF token:', csrfToken);
+            fetch(`/admin/timetable/update/${_editingTimetableId}`, { method: 'POST', headers: { 'Content-Type':'application/json','X-CSRFToken':csrfToken }, body: JSON.stringify(payload) })
+                .then(r=>{ console.log('Response status:', r.status); return r.text(); })
+                .then(text=>{ console.log('Response text:', text); try { return JSON.parse(text); } catch(e) { console.error('JSON parse error:', e); throw new Error('Invalid JSON: ' + text.substring(0,100)); } })
+                .then(j=>{ if(j.ok){ alert('✅ Timetable updated'); location.reload(); } else { alert('❌ '+(j.error||'Update failed')); } })
+                .catch(e=>{ console.error(e); alert('❌ Error: '+e.message); });
+        });
+
+        document.getElementById('attendance-save').addEventListener('click', function(){
+            if (!_editingAttendanceId) return;
+            const payload = {
+                subject: document.getElementById('att-modal-subject').value,
+                date: document.getElementById('att-modal-date').value,
+                time: document.getElementById('att-modal-time').value,
+                status: document.getElementById('att-modal-status').value
+            };
+            fetch(`/admin/attendance/update/${_editingAttendanceId}`, { method: 'POST', headers: { 'Content-Type':'application/json','X-CSRFToken':csrfToken }, body: JSON.stringify(payload) })
+                .then(r=>r.json()).then(j=>{ if(j.ok){ alert('✅ Attendance updated'); location.reload(); } else { alert('❌ '+(j.error||'Update failed')); } })
+                .catch(e=>{ console.error(e); alert('❌ Error: '+e.message); });
+        });
+    </script>
+</body>
+</html>

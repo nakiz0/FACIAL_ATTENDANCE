@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.teacher-container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+.side-actions { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+.card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+.btn { display: inline-block; padding: 10px 16px; background: #4a76d6; color: #fff; border-radius:6px; text-decoration:none; }
+.btn.secondary { background:#888; }
+.stats { display:flex; gap:12px; margin-bottom:18px; }
+.stat { background: linear-gradient(135deg,#6dd5ed,#2193b0); color:white; padding:16px; border-radius:8px; flex:1; text-align:center; }
+</style>
+
+<div class="teacher-container">
+  <h1>👩‍🏫 Teacher Dashboard</h1>
+  <div class="side-actions">
+  <a href="{{ url_for('teacher_take_attendance') }}" class="btn">📝 Take Attendance</a>
+  <a href="{{ url_for('teacher_timetable') }}" class="btn secondary">📅 Manage Timetable</a>
+    <a href="{{ url_for('index') }}" class="btn">🏠 Home</a>
+    <a href="{{ url_for('logout') }}" class="btn secondary">🚪 Logout</a>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div style="font-size:18px">Students</div>
+      <div style="font-size:28px; font-weight:700">{{ students_count }}</div>
+    </div>
+    <div class="stat">
+      <div style="font-size:18px">Today's Classes</div>
+      <div style="font-size:18px; font-weight:700">{{ timetable|length }}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Upcoming Today</h3>
+    {% if timetable %}
+      <table style="width:100%; border-collapse:collapse;">
+        <thead><tr style="background:#f5f5f5;"><th>Subject</th><th>Start</th><th>End</th></tr></thead>
+        <tbody>
+          {% for t in timetable %}
+            <tr><td>{{ t.subject }}</td><td>{{ t.start }}</td><td>{{ t.end }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No classes scheduled for today.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h3>Quick Reports</h3>
+    <p>Use the <strong>Take Attendance</strong> page to mark students present using facial recognition. View per-class reports under Reports in Admin Panel.</p>
+  </div>
+</div>
+
+{% endblock %}

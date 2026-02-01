@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .container{max-width:1000px;margin:20px auto;padding:16px}
+  .card{background:#fff;padding:16px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:8px;border-bottom:1px solid #eee}
+  thead{background:#f5f5f5}
+  .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+  .btn{padding:8px 12px;background:#4a76d6;color:#fff;border-radius:6px;text-decoration:none}
+  .btn.danger{background:#e74c3c}
+</style>
+<div class="container">
+  <div class="card">
+    <h2>🛠 Manage Timetable</h2>
+    <form id="addForm">
+      <div class="form-grid">
+        <input name="day" placeholder="Day (e.g. Monday)" required />
+        <input name="start" placeholder="Start HH:MM" required />
+        <input name="end" placeholder="End HH:MM" required />
+        <input name="subject" placeholder="Subject" required />
+      </div>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <button class="btn" type="submit" style="margin-top:8px;">➕ Add</button>
+    </form>
+
+    <hr />
+    <h3>Existing Entries</h3>
+    {% if timetable %}
+    <table>
+      <thead><tr><th>Day</th><th>Start</th><th>End</th><th>Subject</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for t in timetable %}
+        <tr data-id="{{ t.id }}">
+          <td>{{ t.day }}</td>
+          <td>{{ t.start }}</td>
+          <td>{{ t.end }}</td>
+          <td>{{ t.subject }}</td>
+          <td>
+            <button class="btn" onclick="editRow({{ t.id }})">✏️ Edit</button>
+            <button class="btn danger" onclick="deleteRow({{ t.id }})">🗑️ Delete</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p>No timetable entries yet.</p>
+    {% endif %}
+  </div>
+</div>
+<script>
+async function postForm(url, data){
+  const resp = await fetch(url, {method:'POST', headers:{'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content'), 'Content-Type':'application/json'}, body: JSON.stringify(data)});
+  return resp.json();
+}
+
+document.getElementById('addForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const f = e.target;
+  const formData = new FormData(f);
+  const body = {};
+  formData.forEach((v,k)=> body[k]=v);
+  // Use admin add endpoint (teachers are allowed)
+  const data = new URLSearchParams(formData).toString();
+  const r = await fetch('{{ url_for('admin_add_timetable') }}', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: data});
+  if(r.redirected) window.location.href = r.url; else location.reload();
+});
+
+async function deleteRow(id){
+  if(!confirm('Delete entry?')) return;
+  const r = await postForm('{{ url_for('admin_delete_timetable', tid=0) }}'.replace('/0','/'+id), {});
+  if(r.ok) location.reload(); else alert(r.error||'Failed');
+}
+
+function editRow(id){
+  const tr = document.querySelector('tr[data-id="'+id+'"]');
+  const cells = tr.querySelectorAll('td');
+  const day = prompt('Day', cells[0].innerText);
+  const start = prompt('Start', cells[1].innerText);
+  const end = prompt('End', cells[2].innerText);
+  const subject = prompt('Subject', cells[3].innerText);
+  if(!day||!start||!end||!subject) return;
+  postForm('{{ url_for('admin_update_timetable', tid=0) }}'.replace('/0','/'+id), {day, start, end, subject}).then(r=>{ if(r.ok) location.reload(); else alert(r.error||'Failed'); });
+}
+</script>
+{% endblock %}

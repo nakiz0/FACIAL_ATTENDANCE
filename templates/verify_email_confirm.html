@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Verification - Facial Attendance</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; }
+        .container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: center; max-width: 500px; width: 90%; }
+        .icon { font-size: 60px; margin-bottom: 20px; }
+        h1 { color: #333; margin-bottom: 20px; }
+        p { color: #666; margin-bottom: 10px; line-height: 1.6; }
+        .error { color: #d32f2f; background-color: #ffebee; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #d32f2f; }
+        .success { color: #388e3c; background-color: #e8f5e9; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #388e3c; }
+        .form-group { margin: 20px 0; text-align: left; }
+        .form-group label { display: block; color: #555; font-weight: 500; margin-bottom: 8px; }
+        .form-group input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; }
+        .form-group input:focus { outline: none; border: 2px solid #667eea; }
+        .btn { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; border: none; cursor: pointer; font-weight: 600; margin-top: 20px; }
+        .btn:hover { opacity: 0.9; }
+        .nav-link { color: #667eea; text-decoration: none; margin-top: 20px; display: block; }
+        .nav-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {% if message %}
+            <div class="icon">✅</div>
+            <h1>Email Verified!</h1>
+            <div class="success">{{ message }}</div>
+            <a href="{{ url_for('login') }}" class="btn">Go to Login</a>
+        {% elif error %}
+            <div class="icon">❌</div>
+            <h1>Verification Failed</h1>
+            <div class="error">{{ error }}</div>
+            <p>Please try entering the OTP again or contact support if the issue persists.</p>
+            <a href="{{ url_for('verify_email') }}" class="btn">Try Again</a>
+        {% else %}
+            <div class="icon">📧</div>
+            <h1>Verify Your Email</h1>
+            <p>Request a one-minute OTP or enter the OTP you received to verify your account.</p>
+
+            <div style="margin-top:12px; text-align:left;">
+                <form method="POST" style="margin-bottom:12px;">
+                    <div class="form-group">
+                        <label for="email">Enter your registered email to receive OTP</label>
+                        <input type="email" id="email" name="email" placeholder="name@school.edu" value="" required>
+                    </div>
+                    <button type="submit" class="btn">📨 Send OTP</button>
+                </form>
+
+                <form method="POST">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" placeholder="Your username" value="{{ username_to_verify or '' }}" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="otp">OTP Code</label>
+                        <input type="text" id="otp" name="otp" placeholder="Enter 6-digit OTP" maxlength="6" required pattern="[0-9]{6}">
+                    </div>
+
+                    <button type="submit" class="btn">✅ Verify Email</button>
+                </form>
+            </div>
+            
+            <a href="{{ url_for('login') }}" class="nav-link">Back to Login</a>
+        {% endif %}
+    </div>
+</body>
+</html>

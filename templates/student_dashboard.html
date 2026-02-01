@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    .dashboard-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+    .stat-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .stat-card h3 { font-size: 32px; margin: 10px 0; }
+    .stat-card p { font-size: 13px; opacity: 0.9; }
+    .stat-card-alt1 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+    .stat-card-alt2 { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+    .stat-card-alt3 { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+    .card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .card h3 { color: #333; margin-bottom: 15px; border-bottom: 2px solid #667eea; padding-bottom: 10px; }
+    .card table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    .card table thead { background-color: #f5f5f5; }
+    .card table th { padding: 12px; text-align: left; font-weight: 600; color: #333; }
+    .card table td { padding: 12px; border-bottom: 1px solid #eee; }
+    .card table tr:hover { background-color: #f9f9f9; }
+    .badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .badge-success { background: #d4edda; color: #155724; }
+    .badge-danger { background: #f8d7da; color: #721c24; }
+    .badge-warning { background: #fff3cd; color: #856404; }
+    .badge-info { background: #d1ecf1; color: #0c5460; }
+    .badge-percentage-high { background: #d4edda; color: #155724; }
+    .badge-percentage-medium { background: #fff3cd; color: #856404; }
+    .badge-percentage-low { background: #f8d7da; color: #721c24; }
+    .info-box { background: #e3f2fd; border-left: 4px solid #1976d2; padding: 15px; border-radius: 4px; margin-bottom: 20px; }
+    .info-box.success { background: #e8f5e9; border-left-color: #388e3c; }
+    .info-box h4 { margin-top: 0; color: #1976d2; }
+    .info-box.success h4 { color: #388e3c; }
+    .btn { display: inline-block; padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 5px; border: none; cursor: pointer; font-weight: 600; }
+    .btn:hover { opacity: 0.9; }
+    .btn-secondary { background: #999; }
+    .chart-container { margin: 15px 0; padding: 15px; background: #f9f9f9; border-radius: 5px; }
+    .empty-message { text-align: center; color: #999; padding: 30px; }
+    .grid-2col { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+</style>
+
+<div class="dashboard-container">
+    <h1>📊 My Dashboard</h1>
+
+    <!-- Slide panel toggle for quick actions (student) -->
+    <button id="slideToggle" class="btn" style="margin-bottom:12px;">☰ Quick Actions</button>
+    <div id="slidePanel" style="display:none; margin-bottom:20px;">
+        <div class="card">
+            <h3>Quick Actions</h3>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <a href="{{ url_for('student_dashboard') }}" class="btn">📋 Check Attendance</a>
+                <a href="{{ url_for('view_timetable') }}" class="btn">📅 Check Timetable</a>
+                <a href="{{ url_for('verify_email') }}" class="btn">📧 Verify Email</a>
+                <a href="{{ url_for('index') }}" class="btn">🏠 Home</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-secondary">🚪 Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function(){
+            var btn = document.getElementById('slideToggle');
+            var panel = document.getElementById('slidePanel');
+            btn.addEventListener('click', function(){
+                if(panel.style.display === 'none') panel.style.display = 'block';
+                else panel.style.display = 'none';
+            });
+        });
+    </script>
+
+    <!-- Email Verification Alert -->
+    {% if not user.email_verified and user.email %}
+    <div class="info-box">
+        <h4>📧 Email Verification Pending</h4>
+        <p>Your email (<strong>{{ user.email }}</strong>) is not yet verified. After you log out, you'll need to verify it before logging back in.</p>
+        <a href="{{ url_for('verify_email') }}" class="btn" style="margin-top: 10px;">🔐 Verify Email Now</a>
+    </div>
+    {% elif user.email_verified %}
+    <div class="info-box success">
+        <h4>✅ Email Verified</h4>
+        <p>Your email (<strong>{{ user.email }}</strong>) is verified and secure.</p>
+    </div>
+    {% endif %}
+
+    <!-- Statistics Grid -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>{{ total_attendance }}</h3>
+            <p>Total Classes Attended</p>
+        </div>
+        <div class="stat-card stat-card-alt1">
+            <h3>{{ present_count }}</h3>
+            <p>Classes Present</p>
+        </div>
+        <div class="stat-card stat-card-alt2">
+            <h3>{{ absent_count }}</h3>
+            <p>Classes Absent</p>
+        </div>
+        <div class="stat-card stat-card-alt3">
+            <h3>{{ attendance_percentage }}%</h3>
+            <p>Attendance Rate</p>
+        </div>
+    </div>
+
+    <!-- Profile Information -->
+    <div class="card">
+        <h3>👤 My Profile</h3>
+        <div class="grid-2col">
+            <div>
+                <p><strong>Username:</strong></p>
+                <p style="color: #667eea; font-size: 16px;">{{ user.username }}</p>
+            </div>
+            <div>
+                <p><strong>Email:</strong></p>
+                <p style="color: #667eea; font-size: 16px;">
+                    {{ user.email or 'Not provided' }}
+                    {% if user.email_verified %}
+                        <span class="badge badge-success">✅ Verified</span>
+                    {% elif user.email %}
+                        <span class="badge badge-warning">⏳ Pending</span>
+                    {% endif %}
+                </p>
+            </div>
+            <div>
+                <p><strong>Role:</strong></p>
+                <p><span class="badge badge-info">{{ user.role.title() }}</span></p>
+            </div>
+            <div>
+                <p><strong>Member Since:</strong></p>
+                <p style="color: #667eea; font-size: 14px;">{{ user.created_at.strftime('%B %d, %Y') if user.created_at else 'Unknown' }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Summary -->
+    <div class="card">
+        <h3>📊 Attendance Summary by Subject</h3>
+        {% if attendance_by_subject %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th>Total Classes</th>
+                        <th>Present</th>
+                        <th>Absent</th>
+                        <th>Percentage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for subject, data in attendance_by_subject.items() %}
+                    <tr>
+                        <td><strong>{{ subject }}</strong></td>
+                        <td>{{ data.total }}</td>
+                        <td><span class="badge badge-success">{{ data.present }}</span></td>
+                        <td><span class="badge badge-danger">{{ data.absent }}</span></td>
+                        <td>
+                            {% if data.percentage >= 75 %}
+                                <span class="badge badge-percentage-high">{{ data.percentage }}%</span>
+                            {% elif data.percentage >= 50 %}
+                                <span class="badge badge-percentage-medium">{{ data.percentage }}%</span>
+                            {% else %}
+                                <span class="badge badge-percentage-low">{{ data.percentage }}%</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="empty-message">No attendance records yet.</p>
+        {% endif %}
+    </div>
+
+    <!-- Recent Attendance Records -->
+    <div class="card">
+        <h3>📋 Recent Attendance Records</h3>
+        {% if attendance %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Subject</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in attendance[:20] %}
+                    <tr>
+                        <td>{{ a.date }}</td>
+                        <td>{{ a.subject }}</td>
+                        <td>{{ a.time }}</td>
+                        <td>
+                            {% if a.status == 'Present' %}
+                                <span class="badge badge-success">✓ Present</span>
+                            {% else %}
+                                <span class="badge badge-danger">✗ {{ a.status }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% if attendance|length > 20 %}
+            <p style="color: #999; text-align: center; margin-top: 15px; font-size: 12px;">Showing 20 most recent records out of {{ attendance|length }} total</p>
+            {% endif %}
+        {% else %}
+            <p class="empty-message">No attendance records yet.</p>
+        {% endif %}
+    </div>
+
+    <!-- Tips Section -->
+    <div class="card">
+        <h3>💡 Tips & Information</h3>
+        <div style="display: grid; gap: 15px;">
+            <div style="padding: 10px; background: #f0f0f0; border-radius: 5px;">
+                <strong>📸 Facial Recognition:</strong> Use the "Take Attendance" feature with face recognition to mark yourself present.
+            </div>
+            <div style="padding: 10px; background: #f0f0f0; border-radius: 5px;">
+                <strong>📅 Check Timetable:</strong> View your class schedule from the navigation menu to know when classes are happening.
+            </div>
+            <div style="padding: 10px; background: #f0f0f0; border-radius: 5px;">
+                <strong>🔐 Email Security:</strong> Keep your email verified for account security and password reset functionality.
+            </div>
+            <div style="padding: 10px; background: #f0f0f0; border-radius: 5px;">
+                <strong>📊 Track Progress:</strong> Monitor your attendance percentage to maintain good academic standing.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
