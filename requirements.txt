@@ -12,4 +12,5 @@ python-dotenv==1.0.0
 itsdangerous==2.1.2
 apscheduler==3.10.1
 Flask-WTF==1.1.1
-Werkzeug==2.2.3
+werkzeug>=2.3.3
+
