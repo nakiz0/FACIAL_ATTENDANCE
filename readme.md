@@ -4,6 +4,16 @@ A full-stack **Facial Attendance System** using face recognition, email verifica
 
 ---
 
+## USE
+
+Update to lastest Python version
+git clone https://github.com/nakiz0/FACIAL_ATTENDANCE.git
+Download requrements.text
+python run.py (be on the same file as it)
+
+
+### face_data stores the captured face_data of the target 
+
 ## 🖼️ Application Screenshots
 This section showcases the complete workflow and features of the system.
 
